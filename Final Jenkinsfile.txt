@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'container_action', choices: ['start', 'stop'], description: 'its used for starting and stoping the container') 
+        string(name: 'container_name', defaultValue: 'my_container', description: 'Who should I say hello to?')
+        choice(name: 'SCALE', choices: ['0', '1', '2', '3'], description: 'Number of containers to scale')
+        booleanParam(name: 'scale_action', defaultValue: false, description: '') 
+    }
+
+    stages {
+        stage('Start Container') {
+            when { expression 
+            { 
+                return params.container_action == "start"} 
+            }
+
+            steps {
+                script {
+                    sh "docker run -dp 80:80 --name ${params.container_name} sivakoppala/phython-webserver:1.0" 
+                }
+            }
+        }
+
+        stage('Stop Container') {
+            when { expression 
+            { 
+                return params.container_action == "stop"} 
+            }
+            steps {
+                script {
+                    sh "docker stop ${params.container_name}"
+                    sh "docker rm ${params.container_name}"
+                }
+            }
+        }
+
+        stage('Scale Containers') {
+            when {
+                expression { params.scale_action == true }
+            }
+            steps {
+                script {
+                    def scale = params.SCALE.toInteger()
+                    sh "docker-compose up -d --scale ${params.container_name}=${scale}"
+                }
+            }
+        }
+    }
+}
